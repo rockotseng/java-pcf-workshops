@@ -5,18 +5,18 @@ applications:
   path: demo/target/demo-0.0.1-SNAPSHOT.jar
   random-route: true
   env:
-    MANAGEMENT_CONTEXTPATH: /v1/tasks
+    MANAGEMENT.CONTEXT-PATH: /v1/tasks
 - name: app2
   instances: 1
   memory: 1024M
   path: demo/target/demo-0.0.1-SNAPSHOT.jar
   random-route: true
   env:
-    MANAGEMENT_CONTEXTPATH: /v1/vin
+    MANAGEMENT.CONTEXT-PATH: /v1/vin
 - name: app3
   instances: 1
   memory: 1024M
   path: demo/target/demo-0.0.1-SNAPSHOT.jar
   random-route: true
   env:
-    MANAGEMENT_CONTEXTPATH: /v1
+    MANAGEMENT.CONTEXT-PATH: /v1
