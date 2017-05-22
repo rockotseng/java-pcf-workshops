@@ -67,7 +67,7 @@
 				<directory>${basedir}</directory>
 				<filtering>true</filtering>
 				<includes>
-					<include>manifest.yml</include>
+					<include>app-manifest.yml</include>
 				</includes>
 				<targetPath>${basedir}/target</targetPath>
 			</resource>
