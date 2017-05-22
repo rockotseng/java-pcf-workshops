@@ -98,9 +98,9 @@ The equivalent *manifest* file for the command `cf push flight-availability -p  
 ---
 applications:
 - name: flight-availability
-	instances: 2
-	path: target/flight-availability-0.0.1-SNAPSHOT.jar
-	host: app
+  instances: 2
+  path: target/flight-availability-0.0.1-SNAPSHOT.jar
+  host: app
 ```
 
 The `flight-availability` comes with a default `app-manifest.yml` in the root folder. This manifest is not ready to use as it is, it must be pre-processed by Maven to produce a `target/app-manifest.yml`. When we run `mvn install` Maven produces this `target/app-manifest.yml`.
