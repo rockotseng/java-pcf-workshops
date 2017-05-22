@@ -12,9 +12,7 @@ PCF Developers workshop
   - [Lab - Deploy web site](#Deploy-web-site)
 	- [Deploying applications with application manifest](#deploying-applications-with-application-manifest)
 - [Cloud Foundry services](#cloud-foundry-services)
-  - [Lab - Load flights from an in-memory database](#load-flights-from-an-in-memory-database)
   - [Lab - Load flights from a database](#load-flights-from-a-provisioned-database)  
-  - [Lab - Load flights' fares from a 3rd-party application](#load-flights-fares-from-an-external-application)
   - [Lab - Load flights fares from an external application using User Provided Services](#load-flights-fares-from-an-external-application-using-user-provided-services)
   - [Lab - Let external application access a platform provided service](#let-external-application-access-a-platform-provided-service)
 - [Routes and Domains](#routes-and-domains)
@@ -159,16 +157,7 @@ We want to load the flights from a relational database (mysql) provisioned by th
 
 We want to load the flights from a relational database and the prices from an external application. For the sake of this exercise, we are going to mock up the external application in cloud foundry.
 
-1. `git checkout load-fares-from-external-app`
-2. `cd apps/flight-availability` (on terminal 1)
-3. Run the flight-availability app
-  `mvn spring-boot:run`
-4. `cd apps/fare-service` (on terminal 2)
-5. Run the fare-service apps  
-  `mvn spring-boot:run`
-4. Test it  (on terminal 3)  
-  `curl 'localhost:8080/fares?origin=MAD&destination=FRA'` shall return something like this `[{"fare":"0.016063185475725605","origin":"MAD","destination":"FRA","id":"2"}]`
-
+### Create the external fare-service application
 Let's have a look at the `fare-service`. It is a pretty basic REST app configured with basic auth (Note: *We could have simply relied on the spring security default configuration properties*):
 ```
 server.port: 8081
@@ -193,6 +182,9 @@ public class FareController {
 }
 ```
 
+Push the `fare-service` application to *Cloud Foundry*.
+
+### Make flight-availability call fare-service application
 Let's have a look at how the `flight-availability` talks to the `fare-service`. First of all, the implementation of the `FareService` interface uses `RestTemplate` to call the Rest endpoint.
 ```
 @Service
@@ -247,7 +239,10 @@ class FareServiceConfig {
 }
 ```
 
-And we provide the credentials for the `fare-service` in the `application.yml`:
+### Configure flight-availability with fare-services's credentials
+
+In traditional Java development we configured the credentials (i.e. url, username, password, etc) via a `Properties` file or `XML` file.
+For instance, the `application.yml` would look like this:
 ```
 fare-service:
   uri: http://localhost:8081
@@ -256,36 +251,20 @@ fare-service:
 
 ```
 
-We tested it that it works locally. Now let's deploy to PCF. First we need to deploy `fare-service` to PCF. Then we deploy  `flight-availability` service. Do we need to make any changes? We do need to configure the credentials to our fare-service.
+The issue with this approach is that when we push java applications to *Cloud Foundry* we push a single artifact, a `jar` or a `war`. Which forces us to put the bundle the properties file with the artifact, not great.
 
-We have several ways to configure the credentials for the `fare-service` in `flight-availability`.
+Another approach, more cloud-native, is to provide those credentials thru environment variables for instance via the `manifest.yml`.
 
-1. Set credentials in application.yml, build the flight-availability app (`mvn install`) and push it (`cf push <myapp> -f target/manifest.yml`).
-	```
-	fare-service:
-		uri: <copy the url of the fare-service in PCF>
-	```
-2. Set credentials as environment variables in the manifest. Thanks to Spring boot configuration we can do something like this:
 	```
 	env:
 	  FARE_SERVICE_URI: http://<fare-service-uri>
 		FARE_SERVICE_USERNAME: user
 		FARE_SERVICE_PASSWORD: password
 	```
-	Rather than modifying the manifest again lets simly verify that this method works. Lets simply set a wrong username via command-line:
-	```
-	cf set-env <myapp> FARE_SERVICE_USERNAME "bob"
-	cf env <myapp> 	(dont mind the cf restage warning message)
-	cf restart <myapp>
-	```
-	And now test it,
-	`curl 'https://mr-fa-cronk-iodism.apps-dev.chdc20-cf.solera.com/fares?origin=MAD&destination=FRA'`
-	should return  
-	`{"timestamp":1490776955527,"status":500,"error":"Internal Server Error","exception":"org.springframework.web.client.HttpClientErrorException","message":"401 Unauthorized","path":"/fares"``
 
+This approach has one inconvenience which is manifested when this `fare-service` is shared by more than one application. Why? We would have to set the same environment variables to all the applications.
 
-3. Inject credentials using a User Provided Service.
-We are going to tackle this step in a separate lab.
+Another approach, the recommended one, is to use *User Provided Service* in *Cloud Foundry*. This is what we are going to use in this lab.
 
 
 ## Load flights fares from an external application using User Provided Services
@@ -368,6 +347,26 @@ We leave to the attendee to modify the application so that it does not need to b
 		```
 	- We don't need now the *Cloud* configuration class because the *Spring Cloud Connectors* will automatically create an instance of *FareService*.
 
+### Consume services using a purely declarative approach
+
+Reference documentation:
+ - https://spring.io/blog/2015/04/27/binding-to-data-services-with-spring-boot-in-cloud-foundry
+ - https://spring.io/blog/2015/01/27/12-factor-app-style-backing-services-with-spring-and-cloud-foundry
+
+
+The Cloud Foundry Java build pack does auto reconfiguration for you. From the docs:
+
+>>	Auto-reconfiguration consists of three parts. First, it adds the cloud profile to Spring’s list of active profiles. Second it exposes all of the properties contributed by Cloud Foundry as a PropertySource in the ApplicationContext. Finally it re-writes the bean definitions of various types to connect automatically with services bound to the application.
+
+If you prefer not to write Java code, or don’t want to use Spring Cloud Connectors, you might want to try and use Spring Boot autoconfiguration and external properties (or YAML) files for everything. For instance, the `fare-service` configuration might look like this:
+```
+fare-service:
+  url: ${cloud.services.fare-service.credentials.url}
+  username: ${cloud.services.fare-service.credentials.username}
+	password: ${cloud.services.fare-service.credentials.password}
+```
+
+
 ## Let external application access a platform provided service
 
 Most likely, all the applications will run within the platform. However, if we ever had an external application access a service provided by the platform, say a database, there is a way to do it.
@@ -399,7 +398,7 @@ There are various ways to implement this lab. One way is to actually declare the
 
 Reference documentation:
  - https://docs.cloudfoundry.org/devguide/deploy-apps/blue-green.html
- 
+
 Use the demo application to demonstrate how we can do blue-green deployments using what you have learnt so far with regards routes.
 
 How would you do it? Say Blue is the current version which is running and green is the new version.
