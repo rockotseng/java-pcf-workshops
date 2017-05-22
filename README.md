@@ -167,7 +167,7 @@ We want to load the flights from a relational database and the prices from an ex
 5. Run the fare-service apps  
   `mvn spring-boot:run`
 4. Test it  (on terminal 3)  
-  `curl 'localhost:8080/fares/origin=MAD&destination=FRA'` shall return something like this `[{"fare":"0.016063185475725605","origin":"MAD","destination":"FRA","id":"2"}]`
+  `curl 'localhost:8080/fares?origin=MAD&destination=FRA'` shall return something like this `[{"fare":"0.016063185475725605","origin":"MAD","destination":"FRA","id":"2"}]`
 
 Let's have a look at the `fare-service`. It is a pretty basic REST app configured with basic auth (Note: *We could have simply relied on the spring security default configuration properties*):
 ```
@@ -297,7 +297,7 @@ We are going to tackle this step in a separate lab.
 
 
 1. Create a User Provided Service which encapsulates the credentials we need to call the `fare-service`:  
- 	`cf uups fare-service -p '{"uri": "https://user:password@<your-fare-service-uri>" }'`  
+ 	`cf cups fare-service -p '{"uri": "https://user:password@<your-fare-service-uri>" }'`  
 2. Add `fare-service` as a service to the `flight-availability` manifest.yml
 	```
 	  ...
@@ -525,7 +525,7 @@ Let's deploy it to Cloud Foundry.
   ```
   cf bind-route-service <application_domain> route-service --hostname <app_hostname>
   ```
-  If you are not sure about the application_domain or app_hostname run: `cf app flight-availability | grep urls`. It will be <app_hostname>.<application_domain>    
+  If you are not sure about the application_domain or app_hostname run: `cf app flight-availability | grep routes`. It will be <app_hostname>.<application_domain>    
 5. Check that `flight-availability` is bound to `route-service`: `cf routes`
   ```
   space         host                                 domain                          port   path   type   apps            		service
