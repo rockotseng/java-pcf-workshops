@@ -92,18 +92,18 @@ Deploy Maven site associated to the flight availability and make it internally a
 
 We can push applications in a much more convenient way rather than passing a potentially long list of parameters. We can move all those parameters to a yml file called *Application Manifest*.
 
-	*CF* command:
-	`cf push flight-availability -p target/flight-availability-0.0.1-SNAPSHOT.jar -i 2 --hostname fa`
+*CF* command:
+`cf push flight-availability -p  target/flight-availability-0.0.1-SNAPSHOT.jar -i 2 --hostname fa`
 
-	And equivalent *manifest* file:
-	```
-	---
-	applications:
-	- name: flight-availability
-		instances: 2
-		path: target/flight-availability-0.0.1-SNAPSHOT.jar
-		host: app
-	```
+And equivalent *manifest* file:
+```
+---
+applications:
+- name: flight-availability
+	instances: 2
+	path: target/flight-availability-0.0.1-SNAPSHOT.jar
+	host: app
+```
 
 The `flight-availability` comes with a default `app-manifest.yml` in the root folder. This manifest is not ready to use as it is, it must be pre-processed by Maven to produce a `target/app-manifest.yml`. When we run `mvn install` Maven produces this `target/app-manifest.yml`.
 
