@@ -16,7 +16,6 @@ PCF Developers workshop
   - [Lab - Load flights fares from an external application using User Provided Services](#load-flights-fares-from-an-external-application-using-user-provided-services)
   - [Lab - Let external application access a platform provided service](#let-external-application-access-a-platform-provided-service)
 - [Routes and Domains](#routes-and-domains)
-  - [Lab - Organizing application routes](#organizing-application-routes)
   - [Lab - Private and Public routes/domains](#private-and-public-routesdomains)
   - [Lab - Blue-Green deployment](#blue-green-deployment)
   - [Lab - Routing Services](#routing-services)
@@ -356,7 +355,7 @@ Reference documentation:
 
 The Cloud Foundry Java build pack does auto reconfiguration for you. From the docs:
 
->>	Auto-reconfiguration consists of three parts. First, it adds the cloud profile to Spring’s list of active profiles. Second it exposes all of the properties contributed by Cloud Foundry as a PropertySource in the ApplicationContext. Finally it re-writes the bean definitions of various types to connect automatically with services bound to the application.
+>	Auto-reconfiguration consists of three parts. First, it adds the cloud profile to Spring’s list of active profiles. Second it exposes all of the properties contributed by Cloud Foundry as a PropertySource in the ApplicationContext. Finally it re-writes the bean definitions of various types to connect automatically with services bound to the application.
 
 If you prefer not to write Java code, or don’t want to use Spring Cloud Connectors, you might want to try and use Spring Boot autoconfiguration and external properties (or YAML) files for everything. For instance, the `fare-service` configuration might look like this:
 ```
