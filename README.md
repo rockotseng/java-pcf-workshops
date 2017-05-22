@@ -90,6 +90,17 @@ Deploy Maven site associated to the flight availability and make it internally a
 
 ## Deploying applications with application manifest
 
+We can push applications in a much more convenient way rather than passing a potentially long list of parameters. We can move all those parameters to a yml file called *Application Manifest*. Below there is a list of all the things we can configure thru a manifest file.
+
+There is nothing said on how you want to author a `manifest.yml`. You can generate this file when you are about to push the application. You can have one version of this file in git and customize it just before you push the application. You can do whatever suits you.
+
+The `flight-availability` comes with a default `app-manifest.yml` in the root folder. This manifest is not ready to use as it is, it must be pre-processed by Maven to produce a `target/app-manifest.yml`.
+
+To use this manifest we do the following:
+`cf -f target/manifest.yml`
+
+
+*Things we can do with the manifest.yml file* (more details [here](http://docs.pivotal.io/pivotalcf/1-9/devguide/deploy-apps/manifest.html))
 - [ ] simplify push command with manifest files (`-f <manifest>`, `-no-manifest`)
 - [ ] register applications with DNS (`domain`, `domains`, `host`, `hosts`, `no-hostname`, `random-route`, `routes`). We can register http and tcp endpoints.
 - [ ] deploy applications without registering with DNS (`no-route`) (for instance, a messaging based server which does not listen on any port)
