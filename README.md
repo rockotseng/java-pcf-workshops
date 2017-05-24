@@ -123,6 +123,21 @@ To use this manifest we do the following:
 - [ ] CloudFoundry builds images from our applications. It uses a set of scripts to build images called buildpacks. There are buildpacks for different type of applications. CloudFoundry will automatically detect the type of application however we can tell CloudFoundry which buildpack we want to use. (`buildpack`)
 - [ ] specify services the application needs (`services`)
 
+## Platform guarantees: 4 High-Availability levels
+
+We have seen how we can scale our application (`cf scale -i #` or `cf push  ... -i #`). When we specify the number of instances, we create implicitly creating a contract with the platform. The platform will try its best to guarantee that the application has those instances. Ultimately the platform depends on the underlying infrastructure to provision new instances should some of them failed. If the infrastructure is not ready available, the platform wont be able to comply with the contract. Besides this edge case, the platform takes care of our application availability.
+
+Let's try to simulate our application crashed. To do so we enable the `/shutdown` endpoint in the *actuator*.
+`cf set-env flight-availability MANAGEMENT_SECURITY_ENABLED "false"`
+
+We restart the application: `cf restart flight-availability`
+
+And we send the `/shutdown` request to one of the instances: `curl https://<url>/shutdown`
+
+If we have +1 instances, we have zero-downtime because the other instances are available to receive requests while PCF creates a new one. If we had just one instance, we have downtime of a few seconds until PCF provisions another instance.
+
+
+
 # Cloud Foundry services
 
 ## Load flights from a provisioned database
