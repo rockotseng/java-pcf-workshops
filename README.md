@@ -291,9 +291,9 @@ Another approach, more cloud-native, is to provide those credentials thru enviro
 
 	```
 	env:
-	  FARE_SERVICE_URI: http://<fare-service-uri>
-		FARE_SERVICE_USERNAME: user
-		FARE_SERVICE_PASSWORD: password
+        FARE_SERVICE_URI: http://<fare-service-uri>
+        FARE_SERVICE_USERNAME: user
+        FARE_SERVICE_PASSWORD: password
 	```
 
 This approach has one inconvenience which is manifested when this `fare-service` is shared by more than one application. Why? We would have to set the same environment variables to all the applications.
@@ -322,7 +322,7 @@ Another approach, the recommended one, is to use *User Provided Service* in *Clo
 
 3. Create a brand new project called `cloud-services` where we extend the *Spring Cloud Connectors*. This project is able to parse `VCAP_SERVICES` and extract the credentials of standard services like relational database, RabbitMQ, Redis, etc. However we can extend it so that it can parse our custom service, `fare-service`. This project can work with any cloud, not only CloudFoundry. However, given that we are working with Cloud Foundry we will add the implementation for Cloud Foundry:
 	```
-		<dependency>
+    <dependency>
         	<groupId>org.springframework.cloud</groupId>
         	<artifactId>spring-cloud-cloudfoundry-connector</artifactId>
         	<version>1.2.3.RELEASE</version>
@@ -397,7 +397,7 @@ If you prefer not to write Java code, or don’t want to use Spring Cloud Connec
 fare-service:
   url: ${cloud.services.fare-service.credentials.url}
   username: ${cloud.services.fare-service.credentials.username}
-	password: ${cloud.services.fare-service.credentials.password}
+  password: ${cloud.services.fare-service.credentials.password}
 ```
 
 
@@ -455,9 +455,9 @@ The purpose of the lab is to take any application and add a proxy layer that onl
 1. Create a Spring Boot application with a `web` dependency
   ```xml
     <dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
   ```
 3. Create a @Controller class :
 	```java
@@ -488,14 +488,13 @@ The purpose of the lab is to take any application and add a proxy layer that onl
 		if (jwtToken == null) {
 			this.logger.error("Incoming Request missing JWT Token: {}", incoming);
 			return badRequest();
-		}else if (!isValid(jwtToken)) {
+		} else if (!isValid(jwtToken)) {
 			this.logger.error("Incoming Request missing or not valid JWT Token: {}", incoming);
 			return notAuthorized();
 		}
 
 		RequestEntity<?> outgoing = getOutgoingRequest(incoming);
 		this.logger.debug("Outgoing Request: {}", outgoing);
-
 
 		return this.restOperations.exchange(outgoing,  byte[].class);
 	}
