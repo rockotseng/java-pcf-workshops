@@ -132,7 +132,7 @@ Let's try to simulate our application crashed. To do so we enable the `/shutdown
 
 We restart the application: `cf restart flight-availability`
 
-And we send the `/shutdown` request to one of the instances: `curl https://<url>/shutdown`
+And we send the `/shutdown` request to one of the instances: `curl -X POST https://<url>/shutdown`
 
 If we have +1 instances, we have zero-downtime because the other instances are available to receive requests while PCF creates a new one. If we had just one instance, we have downtime of a few seconds until PCF provisions another instance.
 
