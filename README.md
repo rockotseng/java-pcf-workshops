@@ -27,7 +27,7 @@ PCF Developers workshop
 <!-- /TOC -->
 # Introduction
 
-`git clone https://github.com/MarcialRosales/java-pcf-workshops.git`
+`git clone https://github.com/pivotalservices/java-pcf-workshops.git`
 
 # Pivotal Cloud Foundry Technical Overview
 
