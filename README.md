@@ -27,7 +27,14 @@ PCF Developers workshop
 <!-- /TOC -->
 # Introduction
 
-`git clone https://github.com/MarcialRosales/java-pcf-workshops.git`
+## Prerequisites
+
+- Java JDK 1.8
+- Maven 3.3.x
+- Latest git client
+- CF client (http://???)
+- `curl` or `Postman` (http://) or similar http client.
+- Ideally, a github account but not essential.
 
 # Pivotal Cloud Foundry Technical Overview
 
@@ -35,17 +42,6 @@ Reference documentation:
 - https://docs.pivotal.io
 - [Elastic Runtime concepts](http://docs.pivotal.io/pivotalcf/concepts/index.html)
 
-
-## Run Spring boot app
-We have a spring boot application which provides a list of available flights based on some origin and destination.
-
-1. `git fetch` (`git branch -a` lists all the remote branches e.g `origin/load-flights-from-in-memory-db`)
-2. `git checkout load-flights-from-in-memory-db`
-2. `cd java-pcf-workshops/apps/flight-availability`
-3. `mvn spring-boot:run`
-4. `curl 'localhost:8080?origin=MAD&destination=FRA'`
-
-We would like to make this application available to our clients. How would you do it today?
 
 # Deploying simple apps
 
@@ -57,11 +53,16 @@ Reference documentation:
 - [Deploying Applications](http://docs.pivotal.io/pivotalcf/1-9/devguide/deploy-apps/deploy-app.html)
 - [Deploying with manifests](http://docs.pivotal.io/pivotalcf/1-9/devguide/deploy-apps/manifest.html)
 
+In the next sections we are going to deploy a Spring Boot application and a web site. Before we proceed with the next sections we are going to checkout the following repository which has the Java projects we are about to deploy.
+
+1. `git clone https://github.com/MarcialRosales/java-pcf-workshops.git`
+2. `cd java-pcf-workshops`
+3. `git fetch`
+
 ## Deploy a Spring boot app
 Deploy flight availability and make it publicly available on a given public domain
 
-1. `git checkout load-flights-from-in-memory-db`
-2. `cd java-pcf-workshops/apps/flight-availability`
+1. `cd apps/flight-availability`
 3. Build the app  
   `mvn install`
 4. Deploy the app  
@@ -69,16 +70,15 @@ Deploy flight availability and make it publicly available on a given public doma
 5. Try to deploy the application using a manifest
 6. Check out application's details, whats the url?  
   `cf app flight-availability`  
-7. Check out the health of the application (thanks to the [actuator](https://github.com/MarcialRosales/java-pcf-workshops/blob/master/apps/flight-availability/pom.xml#L37-L40)) `/health` endpoint:  
+7. Check out the health of the application (thanks to the [actuator](https://github.com/pivotalservices/java-pcf-workshops/blob/master/apps/flight-availability/pom.xml#L37-L40)) `/health` endpoint:  
   `curl <url>/health`
-8. Check out the environment variables of the application (thanks to the [actuator](https://github.com/MarcialRosales/java-pcf-workshops/blob/master/apps/flight-availability/pom.xml#L37-L40)) `/env` endpoint:  
+8. Check out the environment variables of the application (thanks to the [actuator](https://github.com/pivotalservices/java-pcf-workshops/blob/master/apps/flight-availability/pom.xml#L37-L40)) `/env` endpoint:  
   `curl <url>/env`
 
 ## Deploy a web site
 Deploy Maven site associated to the flight availability and make it internally available on a given private domain
 
-1. `git checkout load-flights-from-in-memory-db`
-2. `cd java-pcf-workshops/apps/flight-availability`
+2. Assuming you are under `apps/flight-availability`
 3. Build the site. Maven literally downloads hundreds of jars to generate the maven site with all the project reports such as javadoc, sure-fire reports, and others. For this reason, there is a `site` folder which has an already site. If you have a good internet connection, try this command instead:
   `mvn site`
 4. Deploy the app  
@@ -90,7 +90,7 @@ Deploy Maven site associated to the flight availability and make it internally a
 
 ## Deploying applications with application manifest
 
-We can push applications in a much more convenient way rather than passing a potentially long list of parameters. We can move all those parameters to a yml file called *Application Manifest*.
+Rather than passing a potentially long list of parameters to `cf push` we are going to move those parameters to a file so that we don't need to type them everytime we want to push an application. This file is called  *Application Manifest*.
 
 The equivalent *manifest* file for the command `cf push flight-availability -p  target/flight-availability-0.0.1-SNAPSHOT.jar -i 2 --hostname fa` is:
 
@@ -144,7 +144,7 @@ If we have +1 instances, we have zero-downtime because the other instances are a
 
 We want to load the flights from a relational database (mysql) provisioned by the platform not an in-memory database. We are implementing the `FlightService` interface so that we can load them from a `FlightRepository`. We need to convert `Flight` to a *JPA Entity*. We [added](https://github.com/MarcialRosales/java-pcf-workshops/blob/load-flights-from-db/apps/flight-availability/pom.xml#L41-L49) **hsqldb** a *runtime dependency* so that we can run it locally.
 
-1. `git checkout load-flights-from-db`
+1. `git checkout load-flights-from-db` (execute it from root folder of the cloned repo)
 2. `cd apps/flight-availability`
 3. Run the app  
   `mvn spring-boot:run`
@@ -191,6 +191,19 @@ We want to load the flights from a relational database (mysql) provisioned by th
 
 We want to load the flights from a relational database and the prices from an external application. For the sake of this exercise, we are going to mock up the external application in cloud foundry.
 
+```
+	---->[ flight-availability ] ---> [ fare-service ]
+               |
+               \/
+    ( flight-repository db )
+
+```
+
+In the next sections we are going to describe the code changes we have done to transform the current version in the branch `load-flights-from-db` into the branch `load-fares-from-external-app-with-cups`.
+
+First of all, we are going to checkout the new branch `load-fares-from-external-app-with-cups`.
+1. `git checkout load-fares-from-external-app-with-cups`
+
 ### Create the external fare-service application
 Let's have a look at the `fare-service`. It is a pretty basic REST app configured with basic auth (Note: *We could have simply relied on the spring security default configuration properties*):
 ```
@@ -216,10 +229,10 @@ public class FareController {
 }
 ```
 
-Push the `fare-service` application to *Cloud Foundry*.
+Push the `fare-service` application to *Cloud Foundry*. This project comes with a convenient `manifest.yml`.
 
 ### Make flight-availability call fare-service application
-Let's have a look at how the `flight-availability` talks to the `fare-service`. First of all, the implementation of the `FareService` interface uses `RestTemplate` to call the Rest endpoint.
+Let's have a look at how the `flight-availability` calls the `fare-service`. First of all, the implementation of the `FareService` interface uses `RestTemplate` to call the Rest endpoint.
 ```
 @Service
 public class FareServiceImpl implements FareService {
@@ -285,7 +298,7 @@ fare-service:
 
 ```
 
-The issue with this approach is that when we push java applications to *Cloud Foundry* we push a single artifact, a `jar` or a `war`. Which forces us to put the bundle the properties file with the artifact, not great.
+The issue with this approach is that when we push java applications to *Cloud Foundry* we push a single artifact, a `jar` or a `war`. Which forces us to bundle the properties file within the artifact, not great.
 
 Another approach, more cloud-native, is to provide those credentials thru environment variables for instance via the `manifest.yml`.
 
@@ -308,19 +321,9 @@ Another approach, the recommended one, is to use *User Provided Service* in *Clo
 - [Extending Spring Cloud Connectors](http://cloud.spring.io/spring-cloud-connectors/spring-cloud-connectors.html#_extending_spring_cloud_connectors)
 - [Configuring Service Connections for Spring applications in Cloud Foundry](https://docs.cloudfoundry.org/buildpacks/java/spring-service-bindings.html)
 
+The following steps describe the code changes we had to make to consume credentials from a **User Provided Service**. We don't need to write any code because it is already provided in the java project `cloud-services`. However, we are going to walk you thru the code changes.
 
-1. Create a User Provided Service which encapsulates the credentials we need to call the `fare-service`:  
- 	`cf cups fare-service -p '{"uri": "https://user:password@<your-fare-service-uri>" }'`  
-2. Add `fare-service` as a service to the `flight-availability` manifest.yml
-	```
-	  ...
-		services:
-		- flight-repository
-		- fare-service
-	```
-	When we push the `flight-availability`, PCF will inject the `fare-service` credentials to the `VCAP_SERVICES` environment variable.   
-
-3. Create a brand new project called `cloud-services` where we extend the *Spring Cloud Connectors*. This project is able to parse `VCAP_SERVICES` and extract the credentials of standard services like relational database, RabbitMQ, Redis, etc. However we can extend it so that it can parse our custom service, `fare-service`. This project can work with any cloud, not only CloudFoundry. However, given that we are working with Cloud Foundry we will add the implementation for Cloud Foundry:
+1. Create a brand new project called `cloud-services` where we extend the *Spring Cloud Connectors*. This project is able to parse `VCAP_SERVICES` and extract the credentials of standard services like relational database, RabbitMQ, Redis, etc. However we can extend it so that it can parse our custom service, `fare-service`. This project can work with any cloud, not only CloudFoundry. However, given that we are working with Cloud Foundry we will add the implementation for Cloud Foundry:
 	```
 		<dependency>
         	<groupId>org.springframework.cloud</groupId>
@@ -330,13 +333,16 @@ Another approach, the recommended one, is to use *User Provided Service* in *Clo
 
 	```
 
-4. Create a *ServiceInfo* class that holds the credentials to access the `fare-service`. We are going to create a generic [WebServiceInfo](https://github.com/MarcialRosales/java-pcf-workshops/blob/load-fares-from-external-app-with-cups/apps/cloud-services/src/main/java/io/pivotal/demo/cups/cloud/WebServiceInfo.java) class that we can use to call any other web service.  
-5. Create a *ServiceInfoCreator* class that creates an instance of *ServiceInfo* and populates it with the credentials exposed in `VCAP_SERVICES`. Our generic [WebServiceInfoCreator](https://github.com/MarcialRosales/java-pcf-workshops/blob/load-fares-from-external-app-with-cups/apps/cloud-services/src/main/java/io/pivotal/demo/cups/cloud/cf/WebServiceInfoCreator.java). We are extending a class which provides most of the implementation. However, we cannot use it as is due to some limitations with the *User Provided Services* which does not allow us to tag our services. Instead, we need to set the tag within the credentials attribute. Another implementation could be to extend from `CloudFoundryServiceInfoCreator` and rely on the name of the service starting with a prefix like "ws-" for instance "ws-fare-service".
-6. Register our *ServiceInfoCreator* to the *Spring Cloud Connectors* framework by adding a file called [org.springframework.cloud.cloudfoundry.CloudFoundryServiceInfoCreator](https://github.com/MarcialRosales/java-pcf-workshops/blob/load-fares-from-external-app-with-cups/apps/cloud-services/src/main/resources/META-INF/services/org.springframework.cloud.cloudfoundry.CloudFoundryServiceInfoCreator) with this content:
+2. Create a *ServiceInfo* class that holds the credentials to access the `fare-service`. We are going to create a generic [WebServiceInfo](https://github.com/MarcialRosales/java-pcf-workshops/blob/load-fares-from-external-app-with-cups/apps/cloud-services/src/main/java/io/pivotal/demo/cups/cloud/WebServiceInfo.java) class that we can use to call any other web service.  
+
+3. Create a *ServiceInfoCreator* class that creates an instance of *ServiceInfo* and populates it with the credentials exposed in `VCAP_SERVICES`. Our generic [WebServiceInfoCreator](https://github.com/MarcialRosales/java-pcf-workshops/blob/load-fares-from-external-app-with-cups/apps/cloud-services/src/main/java/io/pivotal/demo/cups/cloud/cf/WebServiceInfoCreator.java). We are extending a class which provides most of the implementation. However, we cannot use it as is due to some limitations with the *User Provided Services* which does not allow us to tag our services. Instead, we need to set the tag within the credentials attribute. Another implementation could be to extend from `CloudFoundryServiceInfoCreator` and rely on the name of the service starting with a prefix like "ws-" for instance "ws-fare-service".
+
+4. Register our *ServiceInfoCreator* to the *Spring Cloud Connectors* framework by adding a file called [org.springframework.cloud.cloudfoundry.CloudFoundryServiceInfoCreator](https://github.com/MarcialRosales/java-pcf-workshops/blob/load-fares-from-external-app-with-cups/apps/cloud-services/src/main/resources/META-INF/services/org.springframework.cloud.cloudfoundry.CloudFoundryServiceInfoCreator) with this content:
 	```
 	io.pivotal.demo.cups.cloud.cf.WebServiceInfoCreator
 	```
-7. Provide 2 types of *Configuration* objects, one for *Cloud* and one for non-cloud (i.e. when running it locally). The *Cloud* one uses *Spring Cloud Connectors* to retrieve the `WebServiceInfo` object. First of all, we build a *Cloud* object and from this object we look up the *WebServiceInfo* and from it we build the *RestTemplate*.
+
+5. Provide 2 types of *Configuration* objects, one for *Cloud* and one for non-cloud (i.e. when running it locally). The *Cloud* one uses *Spring Cloud Connectors* to retrieve the `WebServiceInfo` object. First of all, we build a *Cloud* object and from this object we look up the *WebServiceInfo* and from it we build the *RestTemplate*.
 	```
 	@Configuration
 	@Profile({"cloud"})
@@ -365,11 +371,27 @@ Another approach, the recommended one, is to use *User Provided Service* in *Clo
 	}
 	```
 
-8. Build and push the `flight-availability` service
-9. Test it `curl 'https://<my flight availability app>/fares?origin=MAD&destination=FRA'`
-10. Maybe it fails ...
-11. Maybe we had to declare the service like this: `cf uups fare-service -p '{"uri": "https://user:password@<your fare service uri>", "tag": "WebService" }'`  
+6. We have the code and before we push the application we are going to create a *User Provided Service* that gives us the credentials to call `fare-service`:  
+	`cf cups fare-service -p '{"uri": "https://user:password@<your-fare-service-uri>" }'`  
 
+9. Declare `fare-service` as a service to the `flight-availability` manifest.yml
+		```
+		  ...
+			services:
+			- flight-repository
+			- fare-service
+		```
+		When we push the `flight-availability`, PCF will inject the `fare-service` credentials to the `VCAP_SERVICES` environment variable.   
+
+10. Build and push the `flight-availability` service
+
+11. Test it `curl 'https://<my flight availability app>/fares?origin=MAD&destination=FRA'`
+12. Does it work? Check the logs `cf logs flight-availability --recent`
+13. It looks like our WebServiceInfoCreator has not being called or has not created a WebServiceInfo. Why? Maybe because it could not find any declaration which had the tag = "WebService".. Lets modify the service.
+`cf uups fare-service -p '{"uri": "https://user:password@<your fare service uri>", "tag": "WebService" }'`  
+
+
+Advanced lab (if time permits):
 
 Note in the logs the following statement: `No suitable service info creator found for service fare-service Did you forget to add a ServiceInfoCreator?`. *Spring Cloud Connectors* can go one step further and create the ultimate application's service instance rather than only the *ServiceInfo*.
 We leave to the attendee to modify the application so that it does not need to build a *FareService* Bean instead it is built via the *Spring Cloud Connectors* library.
@@ -388,17 +410,19 @@ Reference documentation:
  - https://spring.io/blog/2015/01/27/12-factor-app-style-backing-services-with-spring-and-cloud-foundry
 
 
-The Cloud Foundry Java build pack does auto reconfiguration for you. From the docs:
+The Cloud Foundry **Java build pack** does auto reconfiguration for you. From the docs:
 
 >	Auto-reconfiguration consists of three parts. First, it adds the cloud profile to Spring’s list of active profiles. Second it exposes all of the properties contributed by Cloud Foundry as a PropertySource in the ApplicationContext. Finally it re-writes the bean definitions of various types to connect automatically with services bound to the application.
 
-If you prefer not to write Java code, or don’t want to use Spring Cloud Connectors, you might want to try and use Spring Boot autoconfiguration and external properties (or YAML) files for everything. For instance, the `fare-service` configuration might look like this:
+If you prefer not to write Java code to read credentials from `VCAP_SERVICES` via the Spring Cloud Connectors, you can use this other mechanism which extracts the same credentials but from **Java Properties**. For instance, the `fare-service` configuration might look like this:
 ```
 fare-service:
-  url: ${cloud.services.fare-service.credentials.url}
-  username: ${cloud.services.fare-service.credentials.username}
-	password: ${cloud.services.fare-service.credentials.password}
+  url: ${vcap.services.fare-service.credentials.url}
+  username: ${vcap.services.fare-service.credentials.username}
+	password: ${vcap.services.fare-service.credentials.password}
 ```
+
+The **Java build pack** (and in particular, the java auto-configuration module) exposes all the services declared in the `VCAP_SERVICES` as environment properties.
 
 
 ## Let external application access a platform provided service
@@ -522,6 +546,7 @@ The purpose of the lab is to take any application and add a proxy layer that onl
 	}
 	```
 5. Build the app `mvn install`
+
 
 ### Test the proxy locally
 
