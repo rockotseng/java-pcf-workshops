@@ -5,7 +5,15 @@ Centralized log aggregation plus correlation id is fundamental: http://cloud.spr
 here we demonstrate it via cf logs and also using kibana in Solera if available.
 
 
-https://github.com/spring-cloud/spring-cloud-sleuth/tree/master/spring-cloud-sleuth-samples
+<!-- TOC depthFrom:1 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
+
+- [Log aggregation and correlation id out of the box on edge services in PCF](#)
+- [Distributed tracing and log correlation](#)
+- [Distributed tracing with Zipkin](#distributed-tracing-with-zipkin)
+	- [Bootstrap a Zipkin server](#)
+	- [Configure applications to forward tracing to Zipkin](#)
+	- [Trace HTTP distributed call chain of a successful request](#)
+	- [Trace HTTP distributed call chains of an unsuccessful request](#)
 
 # Log aggregation and correlation id out of the box on edge services in PCF
 
@@ -34,8 +42,10 @@ https://github.com/spring-cloud/spring-cloud-sleuth/tree/master/spring-cloud-sle
 	}
 	```
 
-4. restart flight-availability and fare-service
-5. test logging statement by running the request `curl 'localhost:8080?origin=MAD&destination=FRA'` and checking the standard output:
+4. push both apps
+
+5. test logging statement by running the request `curl '<url>?origin=MAD&destination=FRA'` and checking the standard output:
+TODO copy from PCF to show the trace id
 ```
 2017-05-11 18:42:55.171  INFO 26718 --- [nio-8080-exec-1] c.e.web.FlightAvailabilityController     : Searching flights for MAD/FRA
 ```
@@ -81,11 +91,11 @@ https://github.com/spring-cloud/spring-cloud-sleuth/tree/master/spring-cloud-sle
 ```
 2017-05-11 19:01:51.869  INFO [fare-service,24b1abab1aa3c28c,3bccd9836a0287e3,false] 26930 --- [nio-8081-exec-1] com.example.web.FareController           : Calculating fares for 1 flights
 ```
-4. we need log aggregation not only across all instances of a given application or service but also across all services that make up our solution/architecture. Something like ELK or Spunk. This is outside of the scope of this workshop unless PCF is draining logs to ELK. Future versions of this workshop might provision a local ELK stack.
+4. we need log aggregation not only across all instances of a given application or service but also across all services that make up our solution/architecture. Something like ELK or Spunk. This is outside of the scope of this workshop unless PCF is draining logs to ELK.
 
 # Distributed tracing with Zipkin
 
-Zipkin is a server that receives tracing information (i.e. spans and trace-ids)  from multiple applications and it is also UI capable of displaying complex distributed call chains.
+Zipkin is a server that receives tracing information (i.e. spans and trace-ids) from multiple applications and it has a http server capable of displaying complex distributed call chains thru a web front end.
 
 ## Why do we need Zipkin if we have correlated and aggregated logging? what value does it add?
 - It makes it easy to understand the call chains. In a complex call chain where lots of services are involved, looking at the logs may not be as intuitive as looking at user interface that properly displays them. So, one value is to help us visualize the dependencies and the call chain.
@@ -99,13 +109,13 @@ It is important to notice the difference between distributed logging and distrib
 2017-05-11 19:01:51.869  INFO [fare-service,24b1abab1aa3c28c,3bccd9836a0287e3,false] 26930 --- [nio-8081-exec-1] com.example.web.FareController           : Calculating fares for 1 flights
 ```
 
-With distributed tracing and in particular with Zipkin, the application only sends *spans* not logging statements. As we already know, *span* is a unit of work within a transaction or request, in simple words, it is a snapshot/timestamp taken from a call chain. See the diagram below of the `/fare` request:
+With distributed tracing, and in particular with Zipkin, the application only sends *spans* not logging statements. As we already know, *span* is a unit of work within a transaction or request, in simple words, it is a snapshot/timestamp taken from a call chain. See the diagram below of the `/fare` request:
 ![Distributed transaction](assets/zipkin-6.png)
 
 From left to right:
 - a request comes without any tracing information.
-- flight-availability receives the request and creates a trace-id (`X`) and span (`A`) and annotate the span with `serverReceived` timestamp. Zipkin/Sleuth creates a span for each incoming and/or outgoing request. It does not create, at least by default, spans within an application logic only at the edges.
-- flight-availability sends a request out to the fare-service carrying the same trace-id. As we said earlier, Zipkin/Sleuth creates a brand new span (`B`) for that outgoing request and annotates it with `clientSent` timestamp.
+- flight-availability receives the request and creates a trace-id (`X`) and span (`A`) and annotate the span with `serverReceived` timestamp. **Zipkin/Sleuth** creates a span for each incoming and/or outgoing request. It does not create, at least by default, spans within an application logic only at the edges.
+- `flight-availability` sends a request out to the fare-service carrying the same trace-id. As we said earlier, Zipkin/Sleuth creates a brand new span (`B`) for that outgoing request and annotates it with `clientSent` timestamp.
 - unlike flight-availability, fare-service receives a request which carries a trace-id (`X`). fare-service creates a span (`C`) for the incoming request and annotates with `serverReceived` timestamp.
 - fare-service replies and completes the request and annotates the current span (`C`) with `serverSent` timestamp
 - flight-availability receives the response and annotates the current span (`B`) with `clientReceived` timestamp
@@ -115,7 +125,7 @@ As we can see we have 3 spans, `A`, `B` and `C`. However, Zipkin collapses `B` a
 
 ## Sampling
 
-In a high volume distributed system we have to be cautious with the amount instrumentation data we generate, distributed tracing is not an exception. It is for this reason that Zipkin will trace some of the requests but not all. We can control which percentage we want to trace by using this property `spring.sleuth.sampler.percentage`. To capture all the requests we set it to `1` which is not the default value.
+In a high volume distributed system we have to be cautious with the amount of instrumentation data we generate.  Distributed tracing is not an exception. It is for this reason that Zipkin will trace some of the requests but not all. We can control which percentage we want to trace by using this property `spring.sleuth.sampler.percentage`. To capture all the requests we set it to `1` which is not the default value.
 
 If we use logging in addition to Zipkin to trace requests, the logging statements can tells us whether the current request was sent to Zipkin by looking at the boolean value. For instance below was not sent to Zipkin.
 `2017-05-11 19:01:51.869  INFO [fare-service,24b1abab1aa3c28c,3bccd9836a0287e3,false] 26930 --- [nio-8081-exec-1] com.example.web.FareController           : Calculating fares for 1 flights`
@@ -176,7 +186,11 @@ public class ZipkinServerApplication {
 }
 ```
 
-Finally we launch it : `mvn spring-boot:run` and check the dashboard on `http://localhost:9411`.
+
+We push the zipkin server to PCF:  `zipkin/cf push -f target/manifest.yml `
+
+
+>If we wanted to run it locally along with the other 2 applications we can simply do `mvn spring-boot:run` and check the dashboard on `http://localhost:9411`.
 
 ## Configure applications to forward tracing to Zipkin
 
@@ -189,12 +203,21 @@ So far we only have ZipKin running, we need to configure our applications to fee
 			<artifactId>spring-cloud-starter-zipkin</artifactId>
 		</dependency>
 ```
-2. Restart both applications
+2. Rebuild both applications
+3. Configure them to connect to the zipkin server
+ 	We have 3 options:
+	- we use environment variables in the manifest that sets the location of Zipkin
+	- we use application properties whose values refer to services created in cloud foundry (`vcap.services`)
+	- we use Spring Cloud Connectors (`ServiceInfoCreator`)
+
+4. If we go with the last 2 options we need to create a *User Provided Service* with the Zipkin credentials.
+	`cf cups zipkin-service -p '{ "uri": "https://<>"}'`
+
 
 
 ## Trace HTTP distributed call chain of a successful request
 
-1. Send a request that calls 2 services: flight-availability and fare-service: `curl 'localhost:8080/fares?origin=MAD&destination=FRA'`  
+1. Send a request that calls 2 services: flight-availability and fare-service: `curl '<flight-availability-uri>/fares?origin=MAD&destination=FRA'`  
 
 2. In zipkin dashboard, select the service `flight-availability`, select `all` as the type of request, enter the appropriate time frame and hit the button `Find Traces`.
 	![Zipkin Trace](assets/zipkin-2.png)
@@ -204,9 +227,9 @@ So far we only have ZipKin running, we need to configure our applications to fee
 
 ## Trace HTTP distributed call chains of an unsuccessful request
 
-1. Shut down fare-service
+1. Shut down `fare-service`
 
-2. Send the request: `curl 'localhost:8080/fares?origin=MAD&destination=FRA'`  
+2. Send the request: `curl '<flight-availability-uri>/fares?origin=MAD&destination=FRA'`  
 
 3. Zipkin visualizes failed requests with red color. In the search view we can quickly identify which requests failed, see below:
 	![Zipkin Trace](assets/zipkin-3.png)
@@ -217,9 +240,6 @@ So far we only have ZipKin running, we need to configure our applications to fee
 	To find out the exactly happened we click on that span which opens a dialog box with all span details which include the failure reason: Connection Refused.
 	![Zipkin Trace](assets/zipkin-5.png)
 
-
-## Trace HTTP requests via Hystrix
-TODO
 
 ## Trace message interaction
 TODO

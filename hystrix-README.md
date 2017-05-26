@@ -15,9 +15,9 @@ A Hystrix's circuit breaker opens when:
 - The thread pool and bounded task queue used to interact with a service dependency are at 100% capacity. *Protects our service from overloading the downstream service and/or our service itself*
 - The client library used to interact with a service dependency throws an exception. *Protects our service in case of a faulty downstream service*
 
-It is important to understand that the circuit breaker does only open when the error rate exceeds certain threshold and not when the first failure occurs. The whole idea of the circuit breaker is to immediately fallback using of these 3 approaches:
+It is important to understand that the circuit breaker does only open when the error rate exceeds certain threshold and not when the first failure occurs. The whole idea of the circuit breaker is to immediately fallback using one of these 3 approaches:
 - **custom fallback** - which returns a stubbed response read from a cache, etc.
-- **fail silent** - which returns an empty response provided the caller expects an empty response
+- **fail silent** - which returns an empty response provided the caller can handle it
 - **fail fast** - return back a failure when it makes no sense to return a fallback response. `503 Service not available` could be a sensible error that communicates the caller that it was not possible to attend the request
 
 The 3rd principle is to have some visibility on the circuit breaker state to help us troubleshoot issues. The circuit breaker tracks requests and errors over a 10 second (default) rolling window. Requests and/or errors older than 10 seconds are discarded; only the results of requests over the last 10 seconds matter.
@@ -66,7 +66,7 @@ We are using the following client-server set up:
 
 *service-a* is a REST backend which listens on the root path and replies back the message we pass in the request parameter `message`. It accepts 2 http headers: `delay` which controls the time it takes the service to respond. And `response` which controls the HTTP Status the service responds with.
 
-*client* is a Rest application which listens on the path `/req0` and calls the `service-a`. It passes the incoming http request's headers to downstream http request to the `service-a` so that we can control how long will take `service-a` to respond and/or which HTTP status code shall return.
+*client* is a Rest application which listens on the path `/req0` and calls the `service-a`. It passes the incoming http request's headers, specially those *service-a* supports like `message` and `delay`. This will allow us to control the behavior *service-a* when we call it thru the *client* application.
 
 This is the *client* RestController:
 ```java
@@ -128,7 +128,7 @@ class BusinessServiceImpl implements BusinessService {
   `100` is the total number of requests  
   `4` is the number of concurrent requests  
   `200` is the http response `service-a` should send back  
-  `250` is the number of milliseconds that `service-a` will wait before responding
+  `250` is the processing time per request of `service-a`
 
   It produces these percentiles:
   ```
@@ -144,11 +144,9 @@ class BusinessServiceImpl implements BusinessService {
   100%    287 (longest request)
   ```
 
-  The longest request took approximately the delay we induced to the *service-a*, i.e. 250 msec.
-
 # Test lack of resiliency
 
-Our *client* application is not very resilient at the moment. Let's explore various scenarios to probe it. And later on we will see how we can make our application more resilient with Hystrix.
+Our *client* application is not very resilient at the moment. Let's explore various scenarios to probe it. And later on we will see how we can make our application more resilient with **Hystrix**.
 
 ## *service-a* goes down
 
@@ -170,7 +168,7 @@ Our *client* application is not very resilient at the moment. Let's explore vari
   100%    697 (longest request)
   ```
 
-Requests are now taking substantially longer which means less threads to handle other requests on the *client*. In a nutshell, *service-a* may also bring down and/or seriously reduce the availability and responsiveness of *client*.
+Requests are now taking substantially longer which means there are fewer threads to handle other requests on the *client*. In a nutshell, if the situation persists, *client* may become unresponsive or even can crash.
 
 ## *service-a* is unexpectedly too slow to respond
 
@@ -576,7 +574,7 @@ Requests failed due to business reasons are accounted as <span style="color:#00C
 
 ## Prevent overloading *service-a*
 
-what should your application do, when the external service is unavailable?
+what should your application do when the external service is unavailable?
 1.	Provide timely responses to the users. 
 2.	Give a detailed error message to the users. 
 3.	Provide fall backs when the other service is down. 
