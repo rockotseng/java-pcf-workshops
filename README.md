@@ -191,6 +191,7 @@ We want to load the flights from a relational database (mysql) provisioned by th
 
 We want to load the flights from a relational database and the prices from an external application. For the sake of this exercise, we are going to mock up the external application in cloud foundry.
 
+This diagram illustrates the architecture:
 ```
 	---->[ flight-availability ] ---> [ fare-service ]
                |
@@ -230,6 +231,11 @@ public class FareController {
 ```
 
 Push the `fare-service` application to *Cloud Foundry*. This project comes with a convenient `manifest.yml`.
+1. would you push the application with this command invoked from the `fare-service` folder ? `cf push`
+2. did it work? why not?
+3. Maybe you should have pushed it with `cf push -f target/manifest.yml`
+4. Is there another way? `cd target`, `cf push` ?
+
 
 ### Make flight-availability call fare-service application
 Let's have a look at how the `flight-availability` calls the `fare-service`. First of all, the implementation of the `FareService` interface uses `RestTemplate` to call the Rest endpoint.
