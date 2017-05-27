@@ -32,8 +32,8 @@ PCF Developers workshop
 - Java JDK 1.8
 - Maven 3.3.x
 - Latest git client
-- CF client (http://???)
-- `curl` or `Postman` (http://) or similar http client.
+- CF client (https://docs.cloudfoundry.org/cf-cli/install-go-cli.html)
+- `curl` or `Postman` (https://www.getpostman.com/) or similar http client.
 - Ideally, a github account but not essential.
 `git clone https://github.com/pivotalservices/java-pcf-workshops.git`
 
