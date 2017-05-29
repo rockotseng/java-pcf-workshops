@@ -1,0 +1,18 @@
+
+
+multipart.maxFileSize: 5MB
+multipart.maxRequestSize: 5MB
+
+amazon:
+  aws:
+    timeout: 4300
+  s3:
+    default-bucket: poc-pipeline
+   
+---
+spring:
+  profiles: local
+amazon:
+  aws:
+    access-key-id: <put_your_key>
+    access-key-secret: <put_your_secret>
