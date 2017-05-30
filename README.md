@@ -59,6 +59,7 @@ In the next sections we are going to deploy a Spring Boot application and a web 
 1. `git clone https://github.com/pivotalservices/java-pcf-workshops.git`
 2. `cd java-pcf-workshops`
 3. `git fetch`
+4. `git checkout load-flights-from-in-memory-db`
 
 ## Deploy a Spring boot app
 Deploy flight availability and make it publicly available on a given public domain
@@ -129,7 +130,7 @@ To use this manifest we do the following:
 We have seen how we can scale our application (`cf scale -i #` or `cf push  ... -i #`). When we specify the number of instances, we create implicitly creating a contract with the platform. The platform will try its best to guarantee that the application has those instances. Ultimately the platform depends on the underlying infrastructure to provision new instances should some of them failed. If the infrastructure is not ready available, the platform wont be able to comply with the contract. Besides this edge case, the platform takes care of our application availability.
 
 Let's try to simulate our application crashed. To do so we enable the `/shutdown` endpoint in the *actuator*.
-`cf set-env flight-availability MANAGEMENT_SECURITY_ENABLED "false"`
+`cf set-env flight-availability ENDPOINTS_SHUTDOWN_ENABLED false`
 
 We restart the application: `cf restart flight-availability`
 
