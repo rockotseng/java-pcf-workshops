@@ -56,7 +56,7 @@ Reference documentation:
 
 In the next sections we are going to deploy a Spring Boot application and a web site. Before we proceed with the next sections we are going to checkout the following repository which has the Java projects we are about to deploy.
 
-1. `git clone https://github.com/MarcialRosales/java-pcf-workshops.git`
+1. `git clone https://github.com/pivotalservices/java-pcf-workshops.git`
 2. `cd java-pcf-workshops`
 3. `git fetch`
 
