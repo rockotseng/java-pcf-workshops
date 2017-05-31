@@ -60,6 +60,10 @@ env:
 	JBP_CONFIG_TOMCAT: '{ tomcat: { version: 8.0.+ } }'
 ```
 
+```
+ JBP_CONFIG_OPEN_JDK_JRE: '[memory_calculator: {stack_threads: 800, memory_sizes: {stack: 512k}}]'
+```
+
 # Memory Calculations for Java applications done by Java Buildpack
 
 We are used to launch our java applications (either JEE containers or standalone applications) with a number of `-X` flags, like the maximum amount of heap size, perm gem size or metadata space size, and others.
