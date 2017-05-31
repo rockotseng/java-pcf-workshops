@@ -141,7 +141,7 @@ Proper monitoring & tuning of the Metaspace will obviously be required in order 
 Note: Only in very edge cases where there is no way to reproduce in a local environment the issues we see when running in PCF, there are diagnostics tools to get more insights of the application’s runtime. The diagnostics tools are:
 -	Use JRE developer tools like jmap, jstat, jcmd
 -	JMX access from outside PCF
--	Remote debugging from eclipse or other IDE
+-	Remote debugging from eclipse or other IDE (https://discuss.pivotal.io/hc/en-us/articles/221317307-How-to-remotely-debug-Java-applications-on-PCF-)
 -	Use a Profiler like YourKit
 All these tools require ssh access into the container where application is running and ssh tunneling.
 In addition to these tools, there are other application monitoring tools like AppDynamics or NewRelic which permanently monitor our applications thru one their agents.
