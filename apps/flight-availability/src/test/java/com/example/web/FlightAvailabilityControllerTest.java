@@ -27,7 +27,7 @@ public class FlightAvailabilityControllerTest {
 		String destination = "FRA";
 		
 		when(service.find(origin, destination)).thenReturn(Collections.emptyList());
-		assertTrue(service.find(origin, destination).isEmpty());
+		assertTrue(controller.search(origin, destination).isEmpty());
 		
 	}
 
